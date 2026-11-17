@@ -8,6 +8,7 @@ import RoutesComponent from './app.tsx';
 import './index.css';
 import { Toaster } from '@client/src/components/ui/sonner';
 import DisplayModeToggle from './components/DisplayModeToggle';
+import InstallPrompt from './components/InstallPrompt';
 
 /** 出错时的兜底页，不再依赖任何平台组件 */
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -34,8 +35,16 @@ const MainApp = () => (
       <RoutesComponent />
       {createPortal(<Toaster />, document.body)}
       <DisplayModeToggle />
+      <InstallPrompt />
     </ErrorBoundary>
   </BrowserRouter>
 );
 
 createRoot(document.getElementById('root')!).render(<MainApp />);
+
+// 生产环境注册 Service Worker：让页面可以安装到桌面并支持离线打开壳
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => undefined);
+  });
+}
