@@ -10,7 +10,7 @@
   "scripts": {
     "dev:client": "vite",
     "dev:server": "nest start --watch",
-    "build": "npm run build:client && npm run build:server",
+    "build": "npm run build:server && npm run build:client",
     "build:client": "vite build",
     "build:server": "nest build",
     "start": "cross-env TS_NODE_PROJECT=tsconfig.node.json node -r tsconfig-paths/register dist/server/main.js",
