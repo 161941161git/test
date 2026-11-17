@@ -133,9 +133,12 @@ const SupportChatPage: React.FC = () => {
 
   useEffect(() => {
     if (loading || error) return;
+    // 2 秒轮询，保证对方消息尽快出现
     pollRef.current = window.setInterval(() => {
-      void loadMessages();
-    }, 5000);
+      if (document.visibilityState === 'visible') {
+        void loadMessages();
+      }
+    }, 2000);
     return () => {
       if (pollRef.current) {
         clearInterval(pollRef.current);
