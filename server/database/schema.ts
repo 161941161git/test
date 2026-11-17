@@ -27,96 +27,6 @@ export const customTimestamptz = customType<{
   },
 });
 
-export const userProfile = customType<{
-  data: string;
-  driverData: string;
-}>({
-  dataType() {
-    return 'user_profile';
-  },
-  toDriver(value: string) {
-    return sql`ROW(${value})::user_profile`;
-  },
-  fromDriver(value: string) {
-    const [userId] = value.slice(1, -1).split(',');
-    return userId.trim();
-  },
-});
-
-export type FileAttachment = {
-  bucket_id: string;
-  file_path: string;
-};
-
-export const fileAttachment = customType<{
-  data: FileAttachment;
-  driverData: string;
-}>({
-  dataType() {
-    return 'file_attachment';
-  },
-  toDriver(value: FileAttachment) {
-    return sql`ROW(${value.bucket_id},${value.file_path})::file_attachment`;
-  },
-  fromDriver(value: string): FileAttachment {
-    const [bucketId, filePath] = value.slice(1, -1).split(',');
-    return { bucket_id: bucketId.trim(), file_path: filePath.trim() };
-  },
-});
-
-export function escapeLiteral(str: string): string {
-  return "'" + str.replace(/'/g, "''") + "'";
-}
-
-export const userProfileArray = customType<{
-  data: string[];
-  driverData: string;
-}>({
-  dataType() {
-    return 'user_profile[]';
-  },
-  toDriver(value: string[]) {
-    if (!value || value.length === 0) {
-      return sql`'{}'::user_profile[]`;
-    }
-    const elements = value.map(id => `ROW(${escapeLiteral(id)})::user_profile`).join(',');
-    return sql.raw(`ARRAY[${elements}]::user_profile[]`);
-  },
-  fromDriver(value: string): string[] {
-    if (!value || value === '{}') return [];
-    const inner = value.slice(1, -1);
-    const matches = inner.match(/\([^)]*\)/g) || [];
-    return matches.map(m => m.slice(1, -1).split(',')[0].trim());
-  },
-});
-
-export const fileAttachmentArray = customType<{
-  data: FileAttachment[];
-  driverData: string;
-}>({
-  dataType() {
-    return 'file_attachment[]';
-  },
-  toDriver(value: FileAttachment[]) {
-    if (!value || value.length === 0) {
-      return sql`'{}'::file_attachment[]`;
-    }
-    const elements = value.map(f =>
-      `ROW(${escapeLiteral(f.bucket_id)},${escapeLiteral(f.file_path)})::file_attachment`
-    ).join(',');
-    return sql.raw(`ARRAY[${elements}]::file_attachment[]`);
-  },
-  fromDriver(value: string): FileAttachment[] {
-    if (!value || value === '{}') return [];
-    const inner = value.slice(1, -1);
-    const matches = inner.match(/\([^)]*\)/g) || [];
-    return matches.map(m => {
-      const [bucketId, filePath] = m.slice(1, -1).split(',');
-      return { bucket_id: bucketId.trim(), file_path: filePath.trim() };
-    });
-  },
-});
-
 export const supportMessages = pgTable("support_messages", {
   id: uuid("id").primaryKey().defaultRandom(),
   sessionId: uuid("session_id").notNull(),
@@ -130,14 +40,8 @@ export const supportMessages = pgTable("support_messages", {
   relatedOrderId: uuid("related_order_id"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_support_messages_session_id").on(table.sessionId),
   index("idx_support_messages_created").on(table.createdAt),
@@ -155,14 +59,8 @@ export const supportSessions = pgTable("support_sessions", {
   status: varchar("status", { length: 20 }).notNull().default('active'),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_support_sessions_user_type").on(table.userId, table.sessionType),
   index("idx_support_sessions_status").on(table.status),
@@ -181,14 +79,8 @@ export const refundMessages = pgTable("refund_messages", {
   isSystem: boolean("is_system").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_refund_messages_session_id").on(table.sessionId),
   index("idx_refund_messages_created").on(table.createdAt),
@@ -205,14 +97,8 @@ export const refundSessions = pgTable("refund_sessions", {
   rejectReason: text("reject_reason"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_refund_sessions_order_id").on(table.orderId),
   index("idx_refund_sessions_buyer_id").on(table.buyerId),
@@ -230,14 +116,8 @@ export const notifications = pgTable("notifications", {
   isRead: boolean("is_read").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_notifications_recipient").on(table.recipientType, table.recipientId, table.createdAt),
   index("idx_notifications_unread").on(table.recipientType, table.recipientId, table.isRead),
@@ -256,14 +136,8 @@ export const runnerApplications = pgTable("runner_applications", {
   paymentQrUrl: text("payment_qr_url").notNull(),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_runner_applications_user_id").on(table.userId),
   index("idx_runner_applications_status").on(table.status),
@@ -280,14 +154,8 @@ export const settlementMessages = pgTable("settlement_messages", {
   isSystem: boolean("is_system").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_settlement_messages_session_id").on(table.sessionId),
   index("idx_settlement_messages_created").on(table.createdAt),
@@ -311,14 +179,8 @@ export const settlementSessions = pgTable("settlement_sessions", {
   payProofUrl: text("pay_proof_url"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_settlement_sessions_order_id").on(table.orderId),
   index("idx_settlement_sessions_runner_id").on(table.runnerId),
@@ -343,14 +205,8 @@ export const qrConfigs = pgTable("qr_configs", {
   paymentNote: text("payment_note").notNull(),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 });
 
 export const profitSharingRecords = pgTable("profit_sharing_records", {
@@ -366,14 +222,8 @@ export const profitSharingRecords = pgTable("profit_sharing_records", {
   retryCount: integer("retry_count").notNull().default(0),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_profit_sharing_order_id").on(table.orderId),
   index("idx_profit_sharing_status").on(table.status),
@@ -403,14 +253,8 @@ export const paymentConfigs = pgTable("payment_configs", {
   alipayPublicKey: text("alipay_public_key"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 });
 
 export const adminPaymentAccounts = pgTable("admin_payment_accounts", {
@@ -422,14 +266,8 @@ export const adminPaymentAccounts = pgTable("admin_payment_accounts", {
   isDefault: boolean("is_default").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("idx_admin_payment_acc_admin_channel").on(table.adminId, table.channel),
   foreignKey({
@@ -449,14 +287,8 @@ export const paymentAccounts = pgTable("payment_accounts", {
   isDefault: boolean("is_default").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("idx_payment_acc_user_channel").on(table.userId, table.channel),
   foreignKey({
@@ -481,14 +313,8 @@ export const fundTransactions = pgTable("fund_transactions", {
   rawSummary: text("raw_summary"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_fund_tx_order_id").on(table.orderId),
   index("idx_fund_tx_type").on(table.txType),
@@ -522,14 +348,8 @@ export const paymentOrders = pgTable("payment_orders", {
   paidAt: customTimestamptz("paid_at", { precision: 3 }),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("payment_orders_pay_no_key").on(table.payNo),
   index("idx_payment_orders_order_id").on(table.orderId),
@@ -549,14 +369,8 @@ export const admins = pgTable("admins", {
   platformEarnings: numeric("platform_earnings").notNull().default('0'),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("admins_username_key").on(table.username),
 ]);
@@ -577,14 +391,8 @@ export const withdrawRequests = pgTable("withdraw_requests", {
   payQrUrl: text("pay_qr_url").notNull(),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_withdraw_requests_status").on(table.status),
   index("idx_withdraw_requests_user_id").on(table.userId),
@@ -607,14 +415,8 @@ export const refundRequests = pgTable("refund_requests", {
   screenshotUrl: text("screenshot_url"),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("refund_requests_order_id_key").on(table.orderId),
   index("idx_refund_requests_status").on(table.status),
@@ -641,14 +443,8 @@ export const chatMessages = pgTable("chat_messages", {
   isDeliveryPhoto: boolean("is_delivery_photo").notNull().default(false),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_chat_messages_order_id").on(table.orderId),
   foreignKey({
@@ -671,14 +467,8 @@ export const orderPackages = pgTable("order_packages", {
   size: varchar("size", { length: 20 }).notNull().default('small'),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   index("idx_order_packages_order_id").on(table.orderId),
   foreignKey({
@@ -718,14 +508,8 @@ export const orders = pgTable("orders", {
   payRemark: text("pay_remark").notNull(),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("orders_order_no_key").on(table.orderNo),
   index("idx_orders_status").on(table.status),
@@ -758,14 +542,8 @@ export const users = pgTable("users", {
   alipayQrUrl: text("alipay_qr_url").notNull(),
   // System field: Creation time (auto-filled, do not modify)
   createdAt: customTimestamptz("_created_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Creator (auto-filled, do not modify)
-  createdBy: userProfile("_created_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
   // System field: Update time (auto-filled, do not modify)
   updatedAt: customTimestamptz("_updated_at", { precision: 3 }).notNull().default(sql`CURRENT_TIMESTAMP`),
-  // System field: Updater (auto-filled, do not modify)
-  updatedBy: userProfile("_updated_by").default(sql`CASE
-    WHEN (current_setting('app.user_id'::text, true) = ''::text) THEN NULL`),
 }, (table) => [
   uniqueIndex("users_phone_key").on(table.phone),
   index("idx_users_phone").on(table.phone),
