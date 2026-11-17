@@ -18,6 +18,8 @@ const InstallPrompt: React.FC = () => {
       dismissed = false;
     }
     if (dismissed || env === 'installed') return;
+    // 下载页本身就在引导安装，不再叠加悬浮提示
+    if (window.location.pathname.startsWith('/download')) return;
 
     // 顶部是登录页/首页时不挡操作，延时出现
     const timer = setTimeout(() => setVisible(true), 2500);
