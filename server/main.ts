@@ -46,6 +46,13 @@ async function bootstrap() {
       index: false,
       // 带哈希的静态资源可以长期缓存，避免每次打开页面都重新下载几百 KB
       setHeaders: (res, filePath) => {
+        if (/\.apk$/i.test(filePath)) {
+          // 安卓安装包：按官方 MIME 下发，浏览器点击即触发下载
+          res.setHeader('Content-Type', 'application/vnd.android.package-archive');
+          res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent('shunshou.apk')}"`);
+          res.setHeader('Cache-Control', 'no-cache');
+          return;
+        }
         if (/[\\/]assets[\\/]/.test(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
         } else if (/\.(png|jpg|jpeg|svg|woff2?|ico)$/i.test(filePath)) {
