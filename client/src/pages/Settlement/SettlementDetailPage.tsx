@@ -30,7 +30,7 @@ const formatFen = (fen: number): string => {
   return `¥${(fen / 100).toFixed(2)}`;
 };
 
-const POLL_INTERVAL_MS = 5000;
+const POLL_INTERVAL_MS = 2000;
 
 const SettlementDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
