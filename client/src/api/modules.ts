@@ -22,6 +22,26 @@ const GET_TTL_MS = 15000;
 const getCache = new Map<string, { data: unknown; time: number }>();
 const getInflight = new Map<string, Promise<unknown>>();
 
+/**
+ * 实时性要求高的接口不能走缓存：
+ * 聊天消息、通知、客服会话一旦被缓存，会表现为"对方十几秒后才收到"。
+ */
+const NO_CACHE_PATTERNS: RegExp[] = [
+  /\/messages/i,
+  /\/notifications/i,
+  /\/user-session/i,
+  /\/support\//i,
+  /\/settlement\//i,
+  /\/refund-sessions\//i,
+  /\/admin\/support/i,
+  /\/leaderboard/i,
+];
+
+function isVolatileUrl(url?: string): boolean {
+  if (!url) return false;
+  return NO_CACHE_PATTERNS.some((p) => p.test(url));
+}
+
 function buildCacheKey(config: { baseURL?: string; url?: string; params?: unknown }): string {
   let uid = '';
   let admin = 'u';
@@ -45,7 +65,10 @@ const rawAdapter: (config: any) => Promise<any> =
 
 axiosForBackend.defaults.adapter = (async (config: any) => {
   const method = String(config.method ?? 'get').toLowerCase();
-  const shouldCache = method === 'get' && !config.headers?.['x-skip-cache'];
+  const shouldCache =
+    method === 'get' &&
+    !config.headers?.['x-skip-cache'] &&
+    !isVolatileUrl(config.url);
 
   if (!shouldCache) {
     const res = await rawAdapter(config);
