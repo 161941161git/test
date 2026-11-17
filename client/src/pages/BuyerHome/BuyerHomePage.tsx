@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { Plus, ArrowRight, Bell, CloudRain, Zap } from 'lucide-react';
+import { Plus, ArrowRight, Bell, CloudRain, Zap, Briefcase, Clock, XCircle } from 'lucide-react';
 
 import { BuyerLayout } from '@client/src/components/BuyerLayout';
 import { StatusBadge } from '@client/src/components/StatusBadge';
@@ -89,6 +89,60 @@ const BuyerHomePage: React.FC = () => {
 
   if (!user) return null;
 
+  // 兼职申请入口：未成为跑腿员时在首页顶部常驻
+  const runnerStatus = user.runnerStatus ?? 'none';
+  const runnerEntry = user.isRunner ? null : (
+    <button
+      onClick={() => {
+        if (runnerStatus === 'pending') {
+          toast.info('申请正在审核中，请耐心等待～');
+          return;
+        }
+        navigate('/apply-runner');
+      }}
+      className={
+        runnerStatus === 'rejected'
+          ? 'w-full text-left rounded-xl border border-destructive/25 bg-destructive/5 p-3 btn-press'
+          : 'w-full text-left rounded-xl border border-primary/20 bg-primary/5 p-3 btn-press'
+      }
+    >
+      <div className="flex items-center gap-3">
+        <div
+          className={
+            runnerStatus === 'rejected'
+              ? 'w-9 h-9 rounded-full bg-destructive/10 flex items-center justify-center shrink-0'
+              : 'w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center shrink-0'
+          }
+        >
+          {runnerStatus === 'pending' ? (
+            <Clock className="w-4 h-4 text-warning" strokeWidth={2} />
+          ) : runnerStatus === 'rejected' ? (
+            <XCircle className="w-4 h-4 text-destructive" strokeWidth={2} />
+          ) : (
+            <Briefcase className="w-4 h-4 text-primary" strokeWidth={2} />
+          )}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-medium text-foreground">
+            {runnerStatus === 'pending'
+              ? '兼职申请审核中'
+              : runnerStatus === 'rejected'
+                ? '申请未通过，可重新申请'
+                : '想赚零花钱？申请成为跑腿员'}
+          </div>
+          <div className="text-xs text-muted-foreground mt-0.5">
+            {runnerStatus === 'pending'
+              ? '平台审核通过后就能接单'
+              : runnerStatus === 'rejected'
+                ? '完善资料后可再次提交'
+                : '审核通过后即可在接单大厅接单'}
+          </div>
+        </div>
+        <ArrowRight className="w-4 h-4 text-muted-foreground shrink-0" strokeWidth={2} />
+      </div>
+    </button>
+  );
+
   return (
     <BuyerLayout showTabBar rightAction={rightAction}>
       <div className="p-4 space-y-4">
@@ -101,6 +155,8 @@ const BuyerHomePage: React.FC = () => {
           <Plus className="w-5 h-5" strokeWidth={2} />
           发布代取需求
         </Button>
+
+        {runnerEntry}
 
         {/* 我的发布 */}
         <div className="flex items-center justify-between">
