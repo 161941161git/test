@@ -11,6 +11,8 @@ interface MobileLayoutProps {
   rightAction?: React.ReactNode;
   showTabBar?: boolean;
   hideHeader?: boolean;
+  /** 内容区自己做滚动（聊天页用），避免外层滚动导致底部输入框悬空 */
+  noScroll?: boolean;
 }
 
 const tabItems = [
@@ -26,6 +28,7 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
   rightAction,
   showTabBar = true,
   hideHeader = false,
+  noScroll = false,
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -74,7 +77,15 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
         </header>
       )}
 
-      <main className={clsx('flex-1 overflow-y-auto', showTabBar ? 'pb-16' : '')}>{children}</main>
+      <main
+        className={clsx(
+          'flex-1 min-h-0',
+          noScroll ? 'flex flex-col overflow-hidden' : 'overflow-y-auto',
+          showTabBar ? 'pb-16' : '',
+        )}
+      >
+        {children}
+      </main>
 
       {showTabBar && (
         <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card border-t border-border z-20 safe-bottom">
