@@ -1,0 +1,50 @@
+{
+  "name": "顺手捎 · 校园代取",
+  "short_name": "顺手捎",
+  "description": "校园快递代取：发布代取需求、接单跑腿、在线结算。",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#2563EB",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "发布代取",
+      "short_name": "发布",
+      "url": "/buyer/create-order"
+    },
+    {
+      "name": "我的订单",
+      "short_name": "订单",
+      "url": "/buyer/orders"
+    },
+    {
+      "name": "接单大厅",
+      "short_name": "大厅",
+      "url": "/runner/hall"
+    }
+  ]
+}
