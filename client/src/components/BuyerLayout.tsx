@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate, useOutlet } from 'react-router-dom';
 import { clsx } from 'clsx';
 import { Home, ClipboardList, User } from 'lucide-react';
 import { useUser, setLastRole, getLastRole } from '@client/src/store/userStore';
+import { warmBuyerCache } from '@client/src/api/prefetch';
 
 interface BuyerLayoutProps {
   title?: string;
@@ -42,6 +43,13 @@ export const BuyerLayout: React.FC<BuyerLayoutProps> = ({
     if (user && getLastRole() !== 'buyer') {
       setLastRole('buyer');
     }
+  }, [user]);
+
+  // 首屏渲染后空闲预热列表数据，切标签时直接命中缓存
+  useEffect(() => {
+    if (!user) return;
+    const timer = setTimeout(() => warmBuyerCache(user), 600);
+    return () => clearTimeout(timer);
   }, [user]);
 
   const isTabPage =
