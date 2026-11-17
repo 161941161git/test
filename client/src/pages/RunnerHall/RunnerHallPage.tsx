@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
-import { RefreshCw, CloudRain, Zap, Bell, ArrowRight } from 'lucide-react';
+import { RefreshCw, CloudRain, Zap, Bell, ArrowRight, Clock, CheckCircle2 } from 'lucide-react';
 
 import { StatusBadge } from '@client/src/components/StatusBadge';
 import { EmptyState } from '@client/src/components/EmptyState';
@@ -21,6 +21,9 @@ const RunnerHallPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [acceptingId, setAcceptingId] = useState<string | null>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  /** 待确认接单的订单（点击「接单」后先弹结算提示，手动确认才真正接单） */
+  const [confirmOrder, setConfirmOrder] = useState<Order | null>(null);
+  const [settleAgreed, setSettleAgreed] = useState(false);
 
   const loadOrders = useCallback(async () => {
     if (!user) return;
@@ -78,6 +81,8 @@ const RunnerHallPage: React.FC = () => {
       const resp = await orders.accept(orderId, user.id);
       if (resp.success) {
         toast.success('接单成功！快去取件吧～');
+        setConfirmOrder(null);
+        setSettleAgreed(false);
         navigate(`/runner/order/${resp.data.id}`);
       } else {
         toast.error(resp.message || '接单失败');
@@ -87,6 +92,12 @@ const RunnerHallPage: React.FC = () => {
     } finally {
       setAcceptingId(null);
     }
+  };
+
+  /** 点击「接单」：先弹结算提示，需要手动勾选确认 */
+  const openAcceptConfirm = (order: Order) => {
+    setSettleAgreed(false);
+    setConfirmOrder(order);
   };
 
   const handleViewOrder = (orderId: string) => {
@@ -129,6 +140,19 @@ const RunnerHallPage: React.FC = () => {
         </h2>
         <p className="text-sm text-muted-foreground">
           看看有没有顺路的快递～
+        </p>
+      </div>
+
+      {/* 结算时间提醒 */}
+      <div className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-3">
+        <div className="flex items-center gap-1.5 mb-0.5">
+          <Clock className="w-4 h-4 text-warning" strokeWidth={2} />
+          <span className="text-sm font-bold text-warning">
+            接单费用晚上 22:00 ~ 23:00 统一结算
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          送达后不会立即到账，平台每天 22 点至 23 点统一打款，请先确认收款码已填写。
         </p>
       </div>
 
@@ -220,7 +244,7 @@ const RunnerHallPage: React.FC = () => {
                   onClick={(e) => {
                     e.stopPropagation();
                     if (canAccept) {
-                      void handleAccept(order.id);
+                      openAcceptConfirm(order);
                     } else {
                       handleViewOrder(order.id);
                     }
@@ -237,6 +261,97 @@ const RunnerHallPage: React.FC = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* 接单确认弹窗：醒目提示结算时间，必须手动勾选确认 */}
+      {confirmOrder && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-5"
+          onClick={() => {
+            if (!acceptingId) {
+              setConfirmOrder(null);
+              setSettleAgreed(false);
+            }
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="接单确认"
+        >
+          <div
+            className="w-full max-w-sm bg-card rounded-2xl shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 头部 */}
+            <div className="bg-primary/10 px-5 pt-5 pb-4 border-b border-primary/15">
+              <div className="flex items-center gap-2 mb-2">
+                <Clock className="w-5 h-5 text-primary" strokeWidth={2} />
+                <h3 className="text-base font-bold text-foreground">接单前请确认</h3>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {confirmOrder.dormitory} · {confirmOrder.packageCount} 件 · 跑腿费{' '}
+                <span className="font-semibold text-primary tnum">
+                  {formatMoney(confirmOrder.runnerEarnings || confirmOrder.totalAmount)}
+                </span>
+              </p>
+            </div>
+
+            <div className="px-5 py-4 space-y-3">
+              {/* 醒目结算提示 */}
+              <div className="rounded-xl border-2 border-warning/40 bg-warning/10 px-4 py-3">
+                <p className="text-sm font-bold text-warning mb-1">
+                  接单费用将在晚上 22:00 ~ 23:00 统一结算
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  送达后钱不会立刻到账，平台每天晚上 22 点至 23 点统一打款到你的收款码。
+                  请确认收款码已填写正确。
+                </p>
+              </div>
+
+              {/* 手动确认 */}
+              <button
+                type="button"
+                onClick={() => setSettleAgreed((v) => !v)}
+                className="w-full flex items-start gap-2.5 text-left"
+              >
+                <span
+                  className={
+                    'w-5 h-5 rounded-md border flex items-center justify-center flex-shrink-0 mt-0.5 ' +
+                    (settleAgreed
+                      ? 'bg-primary border-primary text-primary-foreground'
+                      : 'border-input text-transparent')
+                  }
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5" strokeWidth={2.5} />
+                </span>
+                <span className="text-xs text-foreground leading-relaxed">
+                  我已了解：接单费用在 22:00~23:00 统一结算，送达后不会立即到账
+                </span>
+              </button>
+            </div>
+
+            {/* 按钮 */}
+            <div className="px-5 pb-5 flex gap-3">
+              <Button
+                variant="outline"
+                className="flex-1 h-10"
+                onClick={() => {
+                  setConfirmOrder(null);
+                  setSettleAgreed(false);
+                }}
+                disabled={!!acceptingId}
+              >
+                再想想
+              </Button>
+              <Button
+                className="flex-1 h-10"
+                disabled={!settleAgreed || !!acceptingId}
+                onClick={() => void handleAccept(confirmOrder.id)}
+              >
+                {acceptingId === confirmOrder.id ? '接单中...' : '确认接单'}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
