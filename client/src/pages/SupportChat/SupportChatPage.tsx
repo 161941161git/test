@@ -409,11 +409,11 @@ const SupportChatPage: React.FC = () => {
     !inputValue.trim() || sending || uploading;
 
   return (
-    <MobileLayout title="客服 · 顺手捎" showBack showTabBar={false}>
-      <div className="w-full max-w-md mx-auto min-h-full flex flex-col">
+    <MobileLayout title="客服 · 顺手捎" showBack showTabBar={false} noScroll>
+      <div className="w-full max-w-md mx-auto flex-1 min-h-0 flex flex-col">
         <div
           ref={listRef}
-          className="flex-1 p-4 space-y-4 bg-muted/30"
+          className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30"
         >
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full py-8">
@@ -426,7 +426,7 @@ const SupportChatPage: React.FC = () => {
           )}
         </div>
 
-        <div className="sticky bottom-0 z-10 bg-card border-t border-border p-3 safe-bottom mb-[-1px]">
+        <div className="shrink-0 z-10 bg-card border-t border-border p-3 safe-bottom">
           <div className="flex items-end gap-2">
             <button
               type="button"
