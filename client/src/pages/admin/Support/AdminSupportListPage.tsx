@@ -169,6 +169,45 @@ const AdminSupportListPage: React.FC = () => {
     };
   }, [loadSessions]);
 
+  // 会话列表 5 秒轮询（静默，不闪骨架）
+  useEffect(() => {
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void admin.support
+        .list({ page: 1, pageSize: 50, ...(filter !== 'all' ? { sessionType: filter } : {}) })
+        .then((res) => {
+          if (res.success) setSessions(res.data.items || []);
+        })
+        .catch(() => undefined);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [filter]);
+
+  // 当前打开的会话 2 秒拉取新消息（图片/文字都能自动出现，无需切换会话）
+  useEffect(() => {
+    if (!selectedId) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void admin.support
+        .getMessages(selectedId)
+        .then((res) => {
+          if (!res.success) return;
+          const next = res.data || [];
+          setMessages((prev) => {
+            if (next.length !== prev.length) return next;
+            const changed = next.some((m, i) => m.id !== prev[i]?.id);
+            return changed ? next : prev;
+          });
+          void admin.support.markRead(selectedId).catch(() => undefined);
+          setSessions((prev) =>
+            prev.map((s) => (s.id === selectedId ? { ...s, unreadAdminCount: 0 } : s)),
+          );
+        })
+        .catch(() => undefined);
+    }, 2000);
+    return () => clearInterval(timer);
+  }, [selectedId]);
+
   const handleSelectSession = (session: SupportSession) => {
     setSelectedId(session.id);
   };
