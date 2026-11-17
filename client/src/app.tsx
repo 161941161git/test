@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Route, Routes, Navigate, useNavigate } from 'react-router-dom';
 
 import LoginPage from './pages/Login/LoginPage';
+import DownloadPage from './pages/Download/DownloadPage';
 import RegisterPage from './pages/Register/RegisterPage';
 import ApplyRunnerPage from './pages/ApplyRunner/ApplyRunnerPage';
 
@@ -80,6 +81,7 @@ const RoutesComponent = () => {
     <Routes>
       {/* 独立页面（无 tab） */}
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/download" element={<DownloadPage />} />
       <Route path="/register" element={<RegisterPage />} />
       <Route path="/apply-runner" element={<ApplyRunnerPage />} />
       <Route path="/runner/blocked" element={<RunnerBlockedPage />} />
