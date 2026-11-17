@@ -260,7 +260,22 @@ export const users = {
     axiosForBackend.post<ApiResponse<{ success: boolean }>>(`/api/users/${userId}/notifications/read-all`).then((r) => r.data),
   markNotificationRead: (userId: string, notifId: string) =>
     axiosForBackend.post<ApiResponse<{ success: boolean }>>(`/api/users/${userId}/notifications/${notifId}/read`).then((r) => r.data),
+  leaderboard: (limit = 10) =>
+    axiosForBackend.get<ApiResponse<LeaderboardData>>('/api/users/leaderboard', { params: { limit } }).then((r) => r.data),
 };
+
+export interface LeaderboardItem {
+  rank: number;
+  userId: string;
+  name: string;
+  dormitory: string;
+  orderCount: number;
+  earnings: string;
+}
+
+export interface LeaderboardData {
+  items: LeaderboardItem[];
+}
 
 export const orders = {
   calculateFee: (params: { packageCount: number; isRainy?: boolean; isUrgent?: boolean }) =>
