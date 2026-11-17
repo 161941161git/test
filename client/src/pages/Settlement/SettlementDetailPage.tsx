@@ -382,8 +382,9 @@ const SettlementDetailPage: React.FC = () => {
       title={`与平台结算 · ${session?.orderNo || ''}`}
       showBack
       showTabBar={false}
+      noScroll
     >
-      <div className="min-h-full flex flex-col w-full max-w-md mx-auto">
+      <div className="flex flex-col flex-1 min-h-0 w-full max-w-md mx-auto">
         {/* 会话信息区 */}
         {session && (
           <div className="bg-card border-b border-border px-4 py-3">
@@ -420,7 +421,7 @@ const SettlementDetailPage: React.FC = () => {
         {/* 消息区 */}
         <div
           ref={listRef}
-          className="flex-1 p-4 space-y-4 bg-muted/30"
+          className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 bg-muted/30"
         >
           {messages.length === 0 ? (
             <div className="flex items-center justify-center h-full py-8">
@@ -435,7 +436,7 @@ const SettlementDetailPage: React.FC = () => {
 
         {/* 底部输入区 */}
         <div
-          className="sticky bottom-0 z-10 p-3 border-t border-border bg-card safe-bottom"
+          className="shrink-0 z-10 p-3 border-t border-border bg-card safe-bottom"
         >
           <div className="flex items-end gap-2">
             <button
