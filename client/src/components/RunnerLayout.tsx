@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import { Briefcase, ClipboardList, User, UserX } from 'lucide-react';
 import { Button } from '@client/src/components/ui/button';
 import { useUser, getLastRole, setLastRole } from '@client/src/store/userStore';
+import { warmRunnerCache } from '@client/src/api/prefetch';
 
 interface RunnerLayoutProps {
   title?: string;
@@ -78,6 +79,13 @@ export const RunnerLayout: React.FC<RunnerLayoutProps> = ({ title }) => {
       navigate('/login', { replace: true });
     }
   }, [user, navigate]);
+
+  // 首屏渲染后空闲预热大厅/订单数据，切标签时直接命中缓存
+  useEffect(() => {
+    if (!user || !user.isRunner || user.runnerStatus !== 'approved') return;
+    const timer = setTimeout(() => warmRunnerCache(user), 600);
+    return () => clearTimeout(timer);
+  }, [user]);
 
   const isTabPage = tabPaths.some((p) => location.pathname === p || location.pathname.startsWith(p + '/'));
   const activeTab = tabItems.find((t) =>
