@@ -5,6 +5,7 @@ import { Briefcase, ClipboardList, User, UserX } from 'lucide-react';
 import { Button } from '@client/src/components/ui/button';
 import { useUser, getLastRole, setLastRole } from '@client/src/store/userStore';
 import { warmRunnerCache } from '@client/src/api/prefetch';
+import { useDisplayMode, useIsDesktop, shellClassName, contentClassName } from '@client/src/lib/display-mode';
 
 interface RunnerLayoutProps {
   title?: string;
@@ -105,7 +106,7 @@ export const RunnerLayout: React.FC<RunnerLayoutProps> = ({ title }) => {
   // 未登录时渲染骨架，避免闪烁
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto">
+      <div className={shellClassName(mode, isDesktop)}>
         <div className="flex-1 flex items-center justify-center">
           <div className="text-muted-foreground text-sm">加载中...</div>
         </div>
@@ -119,7 +120,7 @@ export const RunnerLayout: React.FC<RunnerLayoutProps> = ({ title }) => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col max-w-md mx-auto relative">
+    <div className={shellClassName(mode, isDesktop, 'relative')}>
       <header className="sticky top-0 z-20 bg-background/95 backdrop-blur-sm border-b border-border safe-top">
         <div className="h-12 flex items-center px-4 relative">
           {showBack ? (
@@ -150,12 +151,12 @@ export const RunnerLayout: React.FC<RunnerLayoutProps> = ({ title }) => {
         </div>
       </header>
 
-      <main className={clsx('flex-1 overflow-y-auto', isTabPage ? 'pb-16' : '')}>
+      <main className={clsx('flex-1 overflow-y-auto', contentClassName(mode, isDesktop), isTabPage ? 'pb-16' : '')}>
         <Outlet />
       </main>
 
       {isTabPage && (
-        <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-md bg-card border-t border-border z-20 safe-bottom">
+        <nav className={clsx('fixed bottom-0 left-1/2 -translate-x-1/2 w-full bg-card border-t border-border z-20 safe-bottom', !isDesktop || mode === 'compact' ? 'max-w-[430px]' : 'max-w-5xl rounded-t-2xl shadow-lg')}>
           <div className="flex justify-around items-center h-14">
             {tabItems.map((item) => {
               const isActive = activeTab === item.key;
