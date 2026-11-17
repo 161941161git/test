@@ -42,7 +42,19 @@ async function bootstrap() {
   // 前端构建产物（与后端同源部署时可直接访问页面）
   const clientDir = join(process.cwd(), 'dist/client');
   if (existsSync(clientDir)) {
-    app.useStaticAssets(clientDir, { index: false });
+    app.useStaticAssets(clientDir, {
+      index: false,
+      // 带哈希的静态资源可以长期缓存，避免每次打开页面都重新下载几百 KB
+      setHeaders: (res, filePath) => {
+        if (/[\\/]assets[\\/]/.test(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        } else if (/\.(png|jpg|jpeg|svg|woff2?|ico)$/i.test(filePath)) {
+          res.setHeader('Cache-Control', 'public, max-age=604800');
+        } else {
+          res.setHeader('Cache-Control', 'no-cache');
+        }
+      },
+    });
   }
 
   const port = Number(process.env.PORT || '3000');
