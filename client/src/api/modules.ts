@@ -12,6 +12,74 @@ export const axiosForBackend = axios.create({
   timeout: 20000,
 });
 
+/* ------------------------------------------------------------------
+ * 轻量 GET 缓存（stale-while-revalidate）
+ * 目的：公网部署时单次请求可能几百毫秒，页面切标签会连发多个请求导致卡顿。
+ * 策略：GET 命中缓存立即返回旧数据（页面瞬间渲染），同时后台静默刷新；
+ *       任何写操作成功后清空整表，保证不会读到过期的列表数据。
+ * ------------------------------------------------------------------ */
+const GET_TTL_MS = 15000;
+const getCache = new Map<string, { data: unknown; time: number }>();
+const getInflight = new Map<string, Promise<unknown>>();
+
+function buildCacheKey(config: { baseURL?: string; url?: string; params?: unknown }): string {
+  let uid = '';
+  let admin = 'u';
+  try {
+    const raw = localStorage.getItem('shunshou_user');
+    if (raw) uid = (JSON.parse(raw) as { id?: string }).id ?? '';
+    if (localStorage.getItem('shunshou_admin')) admin = 'a';
+  } catch {
+    // ignore
+  }
+  return [config.baseURL ?? '', config.url ?? '', JSON.stringify(config.params ?? {}), uid, admin].join('|');
+}
+
+// axios 1.x 的 defaults.adapter 是候选列表（如 ['xhr','http','fetch']），
+// 必须先用 getAdapter 解析成真正的可调用函数，否则请求会全部失败。
+const adapterList = axiosForBackend.defaults.adapter as unknown;
+const rawAdapter: (config: any) => Promise<any> =
+  typeof adapterList === 'function'
+    ? (adapterList as (config: any) => Promise<any>)
+    : ((axios as unknown as { getAdapter: (list: unknown) => (config: any) => Promise<any> }).getAdapter(adapterList));
+
+axiosForBackend.defaults.adapter = (async (config: any) => {
+  const method = String(config.method ?? 'get').toLowerCase();
+  const shouldCache = method === 'get' && !config.headers?.['x-skip-cache'];
+
+  if (!shouldCache) {
+    const res = await rawAdapter(config);
+    if (method !== 'get') getCache.clear();
+    return res;
+  }
+
+  const key = buildCacheKey(config);
+
+  const refresh = (): Promise<any> => {
+    const running = getInflight.get(key);
+    if (running) return running;
+    const task = (async () => {
+      const res = await rawAdapter(config);
+      getCache.set(key, { data: res.data, time: Date.now() });
+      getInflight.delete(key);
+      return res;
+    })();
+    getInflight.set(key, task);
+    task.catch(() => getInflight.delete(key));
+    return task;
+  };
+
+  const hit = getCache.get(key);
+  if (hit && Date.now() - hit.time < GET_TTL_MS) {
+    // 命中：先给页面数据，网络请求在后台跑
+    refresh().catch(() => undefined);
+    return { data: hit.data, status: 200, statusText: 'OK', headers: {}, config } as any;
+  }
+
+  return refresh();
+}) as any;
+
+
 /** 自动带上当前登录用户 id，后端据此识别身份 */
 axiosForBackend.interceptors.request.use((config) => {
   try {
