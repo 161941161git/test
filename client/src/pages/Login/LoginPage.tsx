@@ -162,8 +162,15 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Dev Entry */}
-        <div className="mt-8">
+        {/* 下载 / 开发者入口 */}
+        <div className="mt-8 flex items-center justify-center gap-4">
+          <Link
+            to="/download"
+            className="text-xs text-primary font-medium hover:underline"
+          >
+            下载 App（安卓）
+          </Link>
+          <span className="text-xs text-muted-foreground/40">|</span>
           <Link
             to="/admin/login"
             className="text-xs text-muted-foreground hover:text-primary transition-colors"
