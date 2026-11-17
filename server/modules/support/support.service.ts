@@ -140,22 +140,30 @@ export class SupportService {
   }
 
   async getMessagesByUser(sessionId: string, userId: string): Promise<SupportMessage[]> {
-    await this.verifyUserOwnership(sessionId, userId);
+    // 一次查询同时完成「身份校验 + 清零未读」，省掉一次跨境外 DB 往返
+    const sessionRows = await this.db
+      .update(supportSessions)
+      .set({ unreadUserCount: 0 })
+      .where(and(eq(supportSessions.id, sessionId), eq(supportSessions.userId, userId)))
+      .returning({ id: supportSessions.id });
+
+    if (sessionRows.length === 0) {
+      const exists = await this.db
+        .select({ id: supportSessions.id })
+        .from(supportSessions)
+        .where(eq(supportSessions.id, sessionId))
+        .limit(1);
+      if (exists.length === 0) {
+        throw new NotFoundException('会话不存在');
+      }
+      throw new ForbiddenException('无权访问该会话');
+    }
 
     const rows = await this.db
       .select()
       .from(supportMessages)
       .where(eq(supportMessages.sessionId, sessionId))
       .orderBy(supportMessages.createdAt);
-
-    // 标记用户已读，清零 unread_user_count
-    await this.db
-      .update(supportSessions)
-      .set({ unreadUserCount: 0 })
-      .where(and(
-        eq(supportSessions.id, sessionId),
-        sql`${supportSessions.unreadUserCount} > 0`,
-      ));
 
     return rows.map((row) => this.toMessageDto(row));
   }
@@ -167,8 +175,6 @@ export class SupportService {
     content: string,
     imageUrl: string,
   ): Promise<SupportMessage> {
-    await this.verifyUserOwnership(sessionId, userId);
-
     if (msgType === 'text' && !content?.trim()) {
       throw new BadRequestException('消息内容不能为空');
     }
@@ -176,8 +182,10 @@ export class SupportService {
       throw new BadRequestException('图片不能为空');
     }
 
+    // 一次查询同时拿到「归属人 + 会话状态」，替代原来的两次往返
     const sessionRows = await this.db
       .select({
+        userId: supportSessions.userId,
         userName: supportSessions.userName,
         status: supportSessions.status,
       })
@@ -188,6 +196,9 @@ export class SupportService {
       throw new NotFoundException('会话不存在');
     }
     const session = sessionRows[0];
+    if (session.userId !== userId) {
+      throw new ForbiddenException('无权访问该会话');
+    }
     if (session.status === 'closed') {
       throw new BadRequestException('会话已关闭，无法发送消息');
     }
@@ -195,8 +206,9 @@ export class SupportService {
     const now = new Date();
     const displayContent = msgType === 'text' ? content : '[图片]';
 
-    return await this.db.transaction(async (tx) => {
-      const inserted = await tx
+    // 插入消息与更新会话最后一条并发执行，省掉一次串行往返
+    const [inserted] = await Promise.all([
+      this.db
         .insert(supportMessages)
         .values({
           sessionId,
@@ -208,19 +220,18 @@ export class SupportService {
           imageUrl: imageUrl ?? '',
           isSystem: false,
         })
-        .returning();
-
-      await tx
+        .returning(),
+      this.db
         .update(supportSessions)
         .set({
           lastMessage: displayContent,
           lastMessageAt: now,
           unreadAdminCount: sql`${supportSessions.unreadAdminCount} + 1`,
         })
-        .where(eq(supportSessions.id, sessionId));
+        .where(eq(supportSessions.id, sessionId)),
+    ]);
 
-      return this.toMessageDto(inserted[0]);
-    });
+    return this.toMessageDto(inserted[0]);
   }
 
   async getAdminList(
@@ -258,11 +269,12 @@ export class SupportService {
   }
 
   async getMessagesByAdmin(sessionId: string): Promise<SupportMessage[]> {
+    // 一次查询完成「会话存在校验 + 清零后台未读」
     const sessionRows = await this.db
-      .select({ id: supportSessions.id })
-      .from(supportSessions)
+      .update(supportSessions)
+      .set({ unreadAdminCount: 0 })
       .where(eq(supportSessions.id, sessionId))
-      .limit(1);
+      .returning({ id: supportSessions.id });
     if (sessionRows.length === 0) {
       throw new NotFoundException('会话不存在');
     }
@@ -272,15 +284,6 @@ export class SupportService {
       .from(supportMessages)
       .where(eq(supportMessages.sessionId, sessionId))
       .orderBy(supportMessages.createdAt);
-
-    // 标记管理员已读，清零 unread_admin_count
-    await this.db
-      .update(supportSessions)
-      .set({ unreadAdminCount: 0 })
-      .where(and(
-        eq(supportSessions.id, sessionId),
-        sql`${supportSessions.unreadAdminCount} > 0`,
-      ));
 
     return rows.map((row) => this.toMessageDto(row));
   }
@@ -321,8 +324,8 @@ export class SupportService {
     const displayContent = msgType === 'text' ? content : '[图片]';
     const senderDisplay = adminName || '平台客服';
 
-    const message = await this.db.transaction(async (tx) => {
-      const inserted = await tx
+    const [inserted] = await Promise.all([
+      this.db
         .insert(supportMessages)
         .values({
           sessionId,
@@ -334,19 +337,18 @@ export class SupportService {
           imageUrl: imageUrl ?? '',
           isSystem: false,
         })
-        .returning();
-
-      await tx
+        .returning(),
+      this.db
         .update(supportSessions)
         .set({
           lastMessage: displayContent,
           lastMessageAt: now,
           unreadUserCount: sql`${supportSessions.unreadUserCount} + 1`,
         })
-        .where(eq(supportSessions.id, sessionId));
+        .where(eq(supportSessions.id, sessionId)),
+    ]);
 
-      return this.toMessageDto(inserted[0]);
-    });
+    const message = this.toMessageDto(inserted[0]);
 
     // 给用户发站内通知
     void this.notificationsService.send(
