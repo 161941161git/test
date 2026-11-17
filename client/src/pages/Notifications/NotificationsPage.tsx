@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Bell, ChevronLeft, CheckCheck } from 'lucide-react';
 import { clsx } from 'clsx';
@@ -15,6 +15,7 @@ import type { Notification } from '@shared/api.interface';
 
 const NotificationsPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -88,15 +89,23 @@ const NotificationsPage: React.FC = () => {
 
     if (!notif.relatedType || !notif.relatedId) return;
 
+    // 当前处在哪个身份下（路径前缀优先，其次看用户角色）
+    const inRunner = location.pathname.startsWith('/runner');
+    const isRunner = inRunner || (!!user.isRunner && !location.pathname.startsWith('/buyer'));
+
     switch (notif.relatedType) {
       case 'order':
-        navigate(`/order/${notif.relatedId}`);
+        navigate(isRunner ? `/runner/order/${notif.relatedId}` : `/order/${notif.relatedId}`);
         break;
       case 'withdraw':
         navigate('/withdraw');
         break;
       case 'runner-application':
-        navigate('/profile');
+        navigate(isRunner ? '/runner/profile' : '/apply-runner');
+        break;
+      // 客服回复 → 直接进对应的聊天会话
+      case 'support':
+        navigate(`${isRunner ? '/runner' : '/buyer'}/support/${notif.relatedId}`);
         break;
       default:
         break;
