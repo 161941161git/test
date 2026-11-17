@@ -1,0 +1,26 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["DOM", "DOM.Iterable", "ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client"],
+    "baseUrl": "./",
+    "paths": {
+      "@client/*": ["client/*"],
+      "@shared/*": ["shared/*"],
+      "@/*": ["client/src/*"]
+    }
+  },
+  "include": ["client/**/*", "shared/**/*"]
+}
