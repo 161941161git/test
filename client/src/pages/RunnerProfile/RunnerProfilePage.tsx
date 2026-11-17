@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useUser, setLastRole } from '@client/src/store/userStore';
 import { users, support } from '@client/src/api/modules';
+import LeaderboardCard from '@client/src/components/LeaderboardCard';
 import { formatMoney } from '@client/src/utils/format';
 import { getApiErrorMessage } from '@client/src/lib/api-error';
 
@@ -176,6 +177,11 @@ const RunnerProfilePage: React.FC = () => {
             收益明细
           </button>
         </div>
+      </div>
+
+      {/* 接单排行榜 */}
+      <div className="rise">
+        <LeaderboardCard highlightUserId={user?.id} limit={10} />
       </div>
 
       {/* 收款码入口 */}
