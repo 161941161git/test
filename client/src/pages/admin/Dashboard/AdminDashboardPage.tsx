@@ -25,6 +25,7 @@ import { admin } from '@client/src/api/modules';
 import { getApiErrorMessage } from '@client/src/lib/api-error';
 import { formatMoney } from '@client/src/utils/format';
 import { Skeleton } from '@client/src/components/ui/skeleton';
+import LeaderboardCard from '@client/src/components/LeaderboardCard';
 
 interface DashboardData {
   totalOrders: number;
@@ -245,6 +246,11 @@ const AdminDashboardPage: React.FC = () => {
           />
           刷新
         </button>
+      </div>
+
+      {/* 接单排行榜 */}
+      <div className="rise">
+        <LeaderboardCard compact={false} limit={10} title="接单排行榜（按接单量）" />
       </div>
 
       {/* 数据卡片网格 */}
