@@ -7,6 +7,7 @@ import {
   LogOut,
   ChevronRight,
   Smartphone,
+  Download,
 } from 'lucide-react';
 import { useUser } from '@client/src/store/userStore';
 import AddToHomeSheet from '@client/src/components/AddToHomeSheet';
@@ -48,6 +49,12 @@ const SettingsPage: React.FC = () => {
     danger?: boolean;
     trailing?: React.ReactNode;
   }[] = [
+    {
+      key: 'download-apk',
+      icon: Download,
+      label: '下载安卓安装包',
+      onClick: () => navigate('/download'),
+    },
     {
       key: 'add-to-home',
       icon: Smartphone,
