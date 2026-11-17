@@ -64,6 +64,8 @@ export const RunnerLayout: React.FC<RunnerLayoutProps> = ({ title }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useUser();
+  const mode = useDisplayMode();
+  const isDesktop = useIsDesktop();
 
   // 记住用户当前访问的身份
   useEffect(() => {
