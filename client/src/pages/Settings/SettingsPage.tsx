@@ -6,8 +6,10 @@ import {
   Info,
   LogOut,
   ChevronRight,
+  Smartphone,
 } from 'lucide-react';
 import { useUser } from '@client/src/store/userStore';
+import AddToHomeSheet from '@client/src/components/AddToHomeSheet';
 import {
   Dialog,
   DialogContent,
@@ -21,6 +23,7 @@ const SettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, clearUser } = useUser();
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [installOpen, setInstallOpen] = useState(false);
 
   const handleClearCache = () => {
     toast.success('缓存已清除');
@@ -45,6 +48,12 @@ const SettingsPage: React.FC = () => {
     danger?: boolean;
     trailing?: React.ReactNode;
   }[] = [
+    {
+      key: 'add-to-home',
+      icon: Smartphone,
+      label: '添加到手机桌面',
+      onClick: () => setInstallOpen(true),
+    },
     {
       key: 'clear-cache',
       icon: Trash2,
@@ -120,6 +129,8 @@ const SettingsPage: React.FC = () => {
           );
         })}
       </div>
+
+      <AddToHomeSheet open={installOpen} onClose={() => setInstallOpen(false)} />
 
       <Dialog open={aboutOpen} onOpenChange={setAboutOpen}>
         <DialogContent className="sm:max-w-sm">
