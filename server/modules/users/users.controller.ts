@@ -31,6 +31,27 @@ export class UsersController {
     return { success: true, data, message: '获取成功' };
   }
 
+  @Get('leaderboard')
+  async leaderboard(
+    @Query('limit') limit?: string,
+  ): Promise<
+    ApiResp<{
+      items: Array<{
+        rank: number;
+        userId: string;
+        name: string;
+        dormitory: string;
+        orderCount: number;
+        earnings: string;
+      }>;
+    }>
+  > {
+    const data = await this.usersService.getLeaderboard(
+      limit ? Math.min(Math.max(Number(limit) || 10, 1), 50) : 10,
+    );
+    return { success: true, data, message: '获取成功' };
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<ApiResp<User>> {
     const data = await this.usersService.findById(id);
