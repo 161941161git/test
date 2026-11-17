@@ -314,4 +314,44 @@ export class UsersService {
       alipayQrUrl: rows[0].alipayQrUrl ?? '',
     };
   }
+
+  /**
+   * 跑腿员排行榜：按累计完成单数降序，单数相同再看累计收益
+   */
+  async getLeaderboard(
+    limit = 10,
+  ): Promise<{
+    items: Array<{
+      rank: number;
+      userId: string;
+      name: string;
+      dormitory: string;
+      orderCount: number;
+      earnings: string;
+    }>;
+  }> {
+    const rows = await this.db
+      .select({
+        id: users.id,
+        name: users.name,
+        dormitory: users.dormitory,
+        totalOrders: users.totalOrders,
+        totalEarnings: users.totalEarnings,
+      })
+      .from(users)
+      .where(eq(users.isRunner, true))
+      .orderBy(desc(users.totalOrders), desc(users.totalEarnings))
+      .limit(limit);
+
+    return {
+      items: rows.map((row, index) => ({
+        rank: index + 1,
+        userId: row.id,
+        name: row.name,
+        dormitory: row.dormitory,
+        orderCount: Number(row.totalOrders ?? 0),
+        earnings: Number(row.totalEarnings ?? 0).toFixed(2),
+      })),
+    };
+  }
 }
