@@ -7,6 +7,7 @@ import { ErrorBoundary } from 'react-error-boundary';
 import RoutesComponent from './app.tsx';
 import './index.css';
 import { Toaster } from '@client/src/components/ui/sonner';
+import DisplayModeToggle from './components/DisplayModeToggle';
 
 /** 出错时的兜底页，不再依赖任何平台组件 */
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error; resetErrorBoundary: () => void }) {
@@ -32,6 +33,7 @@ const MainApp = () => (
     )}>
       <RoutesComponent />
       {createPortal(<Toaster />, document.body)}
+      <DisplayModeToggle />
     </ErrorBoundary>
   </BrowserRouter>
 );
